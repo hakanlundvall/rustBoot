@@ -35,8 +35,6 @@ rustBoot = {path = "../../rustBoot", default-features = true, optional = true}
 tock-registers = {version = "0.8.x", default-features = false, features = ["register_types"], optional = true}
 # platform specific dependencies for nrf52840
 nrf52840-hal = {version = "0.16.0", optional = true}
-# platform specific dependencies for stm32h7 series
-stm32h7xx-hal = {version = "0.12.2", features = ["stm32h735", "rt"], optional = true}
 # platform specific dependencies for stm32f7 series
 stm32f7xx-hal = {version = "0.7.0", features = ["stm32f746", "rt"],optional = true}
 # platform specific dependencies for stm32f7 series
@@ -46,6 +44,11 @@ rp2040-hal = {version = "0.7.0", optional = true}
 # platform specific dependencies for stm32f4 series
 [dependencies.stm32f4xx-hal]
 version = "0.14.0"
+features = ["rt"]
+optional = true
+# platform specific dependencies for stm32h7 series
+[dependencies.stm32h7xx-hal]
+version = "0.15.1"
 features = ["rt"]
 optional = true
 
@@ -64,7 +67,8 @@ stm = []
 stm32f411 = ["stm", "stm32f4xx-hal/stm32f411"]
 stm32f446 = ["stm", "stm32f4xx-hal/stm32f446"]
 stm32f469 = ["stm", "stm32f4xx-hal/stm32f469"]
-stm32h723 = ["stm", "stm32h7xx-hal"]
+stm32h723 = ["stm", "stm32h7xx-hal/stm32h735"]
+stm32h743 = ["stm", "stm32h7xx-hal/stm32h743v"]
 stm32f746 = ["stm", "stm32f7xx-hal"]
 stm32f334 = ["stm", "stm32f3xx-hal"]
 pico = []

@@ -57,6 +57,18 @@ pub const SWAP_PARTITION_ADDRESS: usize = 0x080A0000;
 #[cfg(feature = "stm32h723")]
 pub const UPDATE_PARTITION_ADDRESS: usize = 0x08060000;
 
+#[cfg(feature = "stm32h743")]
+pub const SECTOR_SIZE: usize = 0x20000;
+#[cfg(feature = "stm32h743")]
+pub const PARTITION_SIZE: usize = 0x60000;
+#[cfg(feature = "stm32h743")]
+pub const BOOT_PARTITION_ADDRESS: usize = 0x08020000;
+#[cfg(feature = "stm32h743")]
+pub const SWAP_PARTITION_ADDRESS: usize = 0x08100000;
+#[cfg(feature = "stm32h743")]
+pub const UPDATE_PARTITION_ADDRESS: usize = 0x08120000;
+
+
 #[cfg(feature = "stm32f746")]
 pub const SECTOR_SIZE: usize = 0x40000; // 256kb
 #[cfg(feature = "stm32f746")]
