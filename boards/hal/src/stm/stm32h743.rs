@@ -42,9 +42,9 @@ pub struct FlashWriterEraser {
 }
 
 impl FlashWriterEraser {
-    pub fn new(peripherals: pac::Peripherals) -> Self {
+    pub fn new() -> Self {
         FlashWriterEraser {
-            nvm: peripherals.FLASH,
+            nvm: pac::Peripherals::take().unwrap().FLASH,
         }
     }
 }
