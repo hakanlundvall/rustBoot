@@ -297,7 +297,7 @@ impl<Part: ValidPart + Swappable> PartDescriptor<Part> {
             self.set_partition_trailer_magic(updater)
                 .expect("failed to set partition status");
         }
-        let state = unsafe { *self.get_partition_state()? };
+        let state = self.get_partition_state()?;
         let state = match state {
             0xFF => Ok(States::New(StateNew)),
             0x70 => Ok(States::Updating(StateUpdating)),
@@ -318,7 +318,7 @@ impl<Part: ValidPart + Swappable> PartDescriptor<Part> {
             self.set_partition_trailer_magic(updater)
                 .expect("failed to set partition status");
         }
-        let current_state = unsafe { *self.get_partition_state()? };
+        let current_state = self.get_partition_state()?;
         let new_state = state.from().unwrap();
         if current_state != new_state {
             self.set_partition_state(updater, new_state)
@@ -336,13 +336,22 @@ impl<Part: ValidPart + Swappable> PartDescriptor<Part> {
         Ok(updater.flash_trailer_write(self, 0, trailer_magic, MAGIC_TRAIL_LEN))
     }
 
-    fn get_partition_state(&self) -> Result<*const u8> {
-        self.get_trailer_at_offset(1)
+    fn get_partition_state(&self) -> Result<u8> {
+        let state = unsafe {
+            *self.get_trailer_at_offset(64-4)? & *self.get_trailer_at_offset(96-4)? & *self.get_trailer_at_offset(128-4)?
+        };
+        Ok(state)
     }
 
     pub fn set_partition_state(&self, updater: impl FlashApi, state: u8) -> Result<()> {
-        let state = &state as *const u8;
-        Ok(updater.flash_trailer_write(self, 1, state, PART_STATUS_LEN))
+        let state_addr = &state as *const u8;
+        let adjusted_offset = 64 - 4 + match state {
+            0x70 => 0,
+            0x10 => 32,
+            0x00 => 64,
+            _ => return Err(RustbootError::InvalidState),
+        }; // Adjust for the magic field
+        Ok(updater.flash_trailer_write(self, adjusted_offset, state_addr, PART_STATUS_LEN))
     }
 
     fn get_trailer_at_offset(&self, offset: usize) -> Result<*const u8> {
@@ -354,24 +363,22 @@ impl<Part: ValidPart + Swappable> PartDescriptor<Part> {
 
     fn set_trailer_at(&self, updater: impl FlashApi, offset: usize, flag: u8) -> Result<()> {
         let newflag = &flag as *const u8;
-        Ok(updater.flash_trailer_write(self, offset, newflag, 1))
+        let adjusted_offset = offset - 4; // Adjust for the magic field
+        Ok(updater.flash_trailer_write(self, adjusted_offset, newflag, 1))
     }
 }
 
 impl PartDescriptor<Update> {
     pub fn get_flags(&self, sector: usize) -> Result<SectFlags> {
-        let sector_position = sector >> 1;
+        let sector_position = sector * 96;
         let magic_trailer = unsafe { *self.get_partition_trailer_magic()? };
         if magic_trailer != RUSTBOOT_MAGIC_TRAIL as u32 {
             return Err(RustbootError::InvalidImage);
         }
-        let flags;
-        let res = unsafe { *self.get_update_sector_flags(sector_position)? };
-        if sector == (sector_position << 1) {
-            flags = res & 0x0F;
-        } else {
-            flags = (res & 0xF0) >> 4;
-        }
+        let flags = unsafe { (*self.get_update_sector_flags(sector_position)?) & 
+            (*self.get_update_sector_flags(sector_position + 32)?) & 
+            (*self.get_update_sector_flags(sector_position + 64)?) 
+        };
         match flags {
             0x0F => Ok(SectFlags::NewFlag),
             0x07 => Ok(SectFlags::SwappingFlag),
@@ -382,30 +389,34 @@ impl PartDescriptor<Update> {
     }
 
     pub fn get_update_sector_flags(&self, offset: usize) -> Result<*const u8> {
-        self.get_trailer_at_offset(2 + offset)
+        self.get_trailer_at_offset(96 + offset)
     }
+
     pub fn set_flags(&self, updater: impl FlashApi, sector: usize, flag: SectFlags) -> Result<()> {
         let newflag = flag.from().ok_or(RustbootError::InvalidSectFlag)?;
-        let sector_position = sector >> 1;
+        let sector_position = sector * 96;
         let magic_trailer = unsafe { *self.get_partition_trailer_magic()? };
         if magic_trailer != RUSTBOOT_MAGIC_TRAIL as u32 {
             return Err(RustbootError::InvalidImage);
         }
-        let flags;
-        let res = unsafe { *self.get_update_sector_flags(sector_position)? };
-        if sector == (sector_position << 1) {
-            flags = (res & 0xF0) | (newflag & 0x0F);
-        } else {
-            flags = ((newflag & 0x0F) << 4) | (res & 0x0F);
-        }
-        if flags != res {
-            self.set_update_sector_flags(updater, sector_position, flags)?;
+        let flags = unsafe { (*self.get_update_sector_flags(sector_position)?) & 
+            (*self.get_update_sector_flags(sector_position + 32)?) & 
+            (*self.get_update_sector_flags(sector_position + 64)?) 
+        };
+        if newflag != flags {
+            self.set_update_sector_flags(updater, sector_position, newflag)?;
         }
         Ok(())
     }
 
     fn set_update_sector_flags(&self, updater: impl FlashApi, pos: usize, flag: u8) -> Result<()> {
-        self.set_trailer_at(updater, 2 + pos, flag)
+        let offset = 96 + match flag {
+            0x07 => 0,
+            0x03 => 32,
+            0x00 => 64,
+            _ => return Err(RustbootError::InvalidSectFlag),
+        };
+        self.set_trailer_at(updater, offset + pos, flag)
     }
 }
 

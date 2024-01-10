@@ -55,5 +55,13 @@ fn main() -> ! {
         Err(e) => panic!("couldnt trigger update: {}", e),
     }
 
+    while count < 4000 {
+        led1.set_high();
+        delay.delay_ms(100_u16);
+        led1.set_low();
+        delay.delay_ms(100_u16);
+        count = count + 1;
+    }
+
     stm32h7xx_hal::pac::SCB::sys_reset();
 }

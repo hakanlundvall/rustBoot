@@ -138,15 +138,15 @@ impl FlashInterface for FlashWriterEraser {
                     // STM32H7: Due to ECC functionality, it is not possible to write partition/sector
                     // flags and signature more than once. This flags_cache is used to intercept write operations and
                     // ensures that the sector is always erased before each write.
-                    if stm32h7_boot_flag_page(addr as u32) {
-                        self.hal_flash_lock();
-                        self.hal_flash_erase((STM32H7_PART_BOOT_FLAGS_PAGE_ADDRESS as usize), 1);
-                        self.hal_flash_unlock();
-                    } else if stm32h7_update_flag_page(addr as u32) {
-                        self.hal_flash_lock();
-                        self.hal_flash_erase((STM32H7_PART_UPDATE_FLAGS_PAGE_ADDRESS as usize), 1);
-                        self.hal_flash_unlock();
-                    }
+                    // if stm32h7_boot_flag_page(addr as u32) {
+                    //     self.hal_flash_lock();
+                    //     self.hal_flash_erase((STM32H7_PART_BOOT_FLAGS_PAGE_ADDRESS as usize), 1);
+                    //     self.hal_flash_unlock();
+                    // } else if stm32h7_update_flag_page(addr as u32) {
+                    //     self.hal_flash_lock();
+                    //     self.hal_flash_erase((STM32H7_PART_UPDATE_FLAGS_PAGE_ADDRESS as usize), 1);
+                    //     self.hal_flash_unlock();
+                    // }
     
                     while (off < 32) && (i < len as u32) {
                         unsafe {
