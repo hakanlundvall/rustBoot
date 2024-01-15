@@ -176,6 +176,7 @@ where
                         }
                     }
                     // disallow downgrades
+                    #[cfg(not(feature = "allow_downgrades"))]
                     match boot {
                         ImageType::BootInNewState(ref boot) => {
                             if (!rollback
@@ -235,7 +236,11 @@ where
 
                     while ((sector * SECTOR_SIZE) < PARTITION_SIZE) {
                         self.flash_erase(boot_part, sector * SECTOR_SIZE, SECTOR_SIZE);
-                        self.flash_erase(updt_part, sector * SECTOR_SIZE, SECTOR_SIZE);
+                        // Wait with erasing the flags page of the updt partition until boot image is in testing state
+                        // in case there is a reboot at this point
+                        if (((sector + 1) * SECTOR_SIZE) < PARTITION_SIZE) {
+                            self.flash_erase(updt_part, sector * SECTOR_SIZE, SECTOR_SIZE);
+                        }
                         sector += 1;
                     }
                     self.flash_erase(swap_part, 0, SECTOR_SIZE);
@@ -260,6 +265,11 @@ where
                     .unwrap()
                     .set_state(self, new_img.get_state());
                 new_boot_img = Some(new_img);
+
+                // Now erase the flags page of the updt partition.
+                let updt_part = updt.part_desc.get().unwrap();
+                sector -= 1;
+                self.flash_erase(updt_part, sector * SECTOR_SIZE, SECTOR_SIZE);
             }
             _ => return Err(RustbootError::InvalidState),
         }

@@ -365,8 +365,13 @@ pub fn boot_from(fw_base_address: usize) -> ! {
        unsafe {
         let sp = RefinedUsize::<STACK_LOW, STACK_UP, 0>::bounded_int(
             *(fw_base_address as *const u32)).0;
-        let rv = RefinedUsize::<0, 0, FW_RESET_VTR>::single_valued_int(
+        let rv = RefinedUsize::<PARTITION_BOOT_ADDRESS, STM32H7_PART_BOOT_END, 0>::bounded_int(            
             *((fw_base_address + 4) as *const u32)).0;
+        #[cfg(feature = "enforce_reset_vtr")]
+        {
+            rv = RefinedUsize::<0, 0, FW_RESET_VTR>::single_valued_int(
+                *((fw_base_address + 4) as *const u32)).0;
+        }
         let jump_vector = core::mem::transmute::<usize, extern "C" fn() -> !>(rv as usize);
         (*scb).vtor.write(address);
         cortex_m::register::msp::write(sp);

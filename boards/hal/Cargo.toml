@@ -55,7 +55,7 @@ optional = true
 [features]
 default = []
 log = []
-
+enforce_reset_vtr = []
 # board-specific features
 nrf = []
 nrf52840 = ["nrf", "nrf52840-hal"]
